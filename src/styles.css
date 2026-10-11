@@ -1807,3 +1807,6 @@ details > .form-grid {
     font-size: 10px;
   }
 }
+
+/* Original JM MicroApps artwork, framed without modifying the source image. */
+.jm-brand{display:block;position:relative;width:166px;height:50px;overflow:hidden;flex-shrink:0}.jm-brand img{position:absolute;width:320px;max-width:none;height:auto;left:-69px;top:-75px}.page-footer{align-items:center}.page-footer>.jm-brand{font-size:initial}

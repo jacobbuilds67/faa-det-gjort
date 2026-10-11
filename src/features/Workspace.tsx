@@ -365,7 +365,7 @@ export function Workspace({
             </>
           )}
           <footer className="page-footer">
-            <span>hverdagsro.</span>
+            <span className="jm-brand"><img src="/jm-microapps-logo.png" alt="JM MicroApps" width="1536" height="1024" /></span>
             <span>Lidt ad gangen er også fremad.</span>
           </footer>
         </main>

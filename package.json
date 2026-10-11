@@ -1,0 +1,37 @@
+{
+  "name": "hverdagsro",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 127.0.0.1",
+    "format": "prettier --write src tests *.ts *.json *.md"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "dexie": "^4.2.0",
+    "dexie-react-hooks": "^4.2.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "fake-indexeddb": "^6.2.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.9.2",
+    "vite": "^6.3.0",
+    "vitest": "^3.2.0"
+  }
+}

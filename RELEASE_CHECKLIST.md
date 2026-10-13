@@ -4,11 +4,14 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 
 ## 1. Supabase-testprojekt
 
-- Opret et separat Supabase-projekt i EU-regionen.
-- Anvend migrationerne `001_foundation.sql` til `004_projects.sql` i nummerorden.
-- Aktivér e-mail-login, sæt appens lokale og senere offentlige adresser under Auth URL Configuration, og konfigurér en mailafsender.
-- Kopiér kun projektets URL og **publishable key** til `.env`. Brug aldrig secret key eller service-role key i frontend.
-- Kør `pnpm release:check` og derefter `pnpm verify`.
+- [x] Opret et separat Supabase-projekt i EU-regionen: **Få det Gjort Pilot**, West EU (Irland).
+- [x] Anvend migrationerne `001_foundation.sql` til `005_security_hardening.sql` i nummerorden.
+- [x] Aktivér e-mail-login og sæt `http://127.0.0.1:5173` som lokal Site URL og redirectadresse.
+- [x] Kopiér kun projektets URL og **publishable key** til `.env`. Secret/service-role key bruges ikke i frontend.
+- [x] Verificér 18 applikationstabeller, RLS på alle 18 og Supabase Security Advisor uden fejl.
+- [ ] Konfigurér en egnet mailafsender før almindelig brug.
+- [ ] Kør det første loginlink og opret pilothusstanden.
+- [x] Kør `pnpm release:check`.
 
 ## 2. Lukket to-bruger-pilot
 

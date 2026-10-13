@@ -55,10 +55,10 @@ Alternativt kan E2E-test bruge en installeret Chrome: `PLAYWRIGHT_CHANNEL=chrome
 
 ## Tilslut Supabase
 
-Der er ikke oprettet et eksternt projekt eller anvendt nøgler i denne leverance.
+Pilotprojektet **Få det Gjort Pilot** er oprettet i Supabase-organisationen **JM MicroApps** i West EU (Irland). Projektets offentlige URL og publishable key ligger kun i den ignorerede lokale `.env`; secret/service-role key bruges ikke af appen.
 
-1. Opret et separat Supabase-testprojekt.
-2. Anvend migrationerne `001_foundation.sql`, `002_queue_and_time.sql`, `003_recurrence.sql` og `004_projects.sql` i den rækkefølge. De forudsætter Supabase Auth, rollerne `anon`/`authenticated` og et tomt applikationsschema før migration 001.
+1. Brug det separate Supabase-pilotprojekt eller opret et nyt testprojekt.
+2. Anvend migrationerne `001_foundation.sql` til `005_security_hardening.sql` i den rækkefølge. De forudsætter Supabase Auth, rollerne `anon`/`authenticated` og et tomt applikationsschema før migration 001.
 3. Kopiér `.env.example` til `.env`. Indsæt projektets URL og **publishable key**. Brug aldrig secret key eller service-role key i en `VITE_`-variabel.
 4. Tillad udviklingsadressen (fx `http://127.0.0.1:5173`) og senere produktionsadressen under Auth URL Configuration. Aktivér e-mail-login. Konfigurér en egnet mailafsender før almindelig brug.
 5. Genstart Vite. Log ind via e-mail, opret husstanden, og registrér den anden brugers e-mail under Indstillinger. Personen skal selv åbne appen og logge ind med den registrerede e-mail inden syv dage. **Appen sender ikke invitationsmail.**

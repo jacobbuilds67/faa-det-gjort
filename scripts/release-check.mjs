@@ -36,6 +36,7 @@ for (const filename of [
   'supabase/migrations/002_queue_and_time.sql',
   'supabase/migrations/003_recurrence.sql',
   'supabase/migrations/004_projects.sql',
+  'supabase/migrations/005_security_hardening.sql',
 ]) {
   if (!existsSync(filename)) errors.push(`Releasefil mangler: ${filename}`);
 }

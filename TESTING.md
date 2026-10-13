@@ -82,5 +82,5 @@ Startside og editor er tidligere kontrolleret i Codex-browseren ved 1440×1000 o
 8. Offline opret/start/afslut/sync: samlet lokal/simuleret transport testet; ekstern Supabase kræver et tilsluttet testprojekt.
 9. To brugere: databaseadgang, køer og afslutning isoleret testet; fuldt brugerforløb kræver Supabase.
 10. Sæsonopgave: juni/september, forsinkelse og holdte perioder testet.
-11. Konflikt: motor, bevaring og SQL testet; et fysisk to-enhedsforløb kræver et tilsluttet Supabase-testprojekt.
+11. Konflikt: motor, bevaring og SQL testet; det fysiske to-enhedsforløb i det tilsluttede Supabase-pilotprojekt mangler endnu.
 12. Backup/gendannelse: komplet eksport, validering, gennemgang, fletning og bekræftet erstatning testet.

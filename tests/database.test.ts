@@ -99,6 +99,12 @@ beforeAll(async () => {
   await pg.exec(
     readFileSync(new URL('../supabase/migrations/004_projects.sql', import.meta.url), 'utf8'),
   );
+  await pg.exec(
+    readFileSync(
+      new URL('../supabase/migrations/005_security_hardening.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await pg.exec('set role authenticated');
 });
 afterAll(async () => {

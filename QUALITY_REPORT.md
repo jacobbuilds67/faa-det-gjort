@@ -25,7 +25,9 @@ Kontrollen er gennemført 13. oktober 2026 på produktionsbygningen af Få det G
 
 ## Verifikationsgrænser
 
-Fysiske iPhones, iPads og Android-enheder er ikke en del af den automatiske kørsel. Rigtige loginmails, to eksterne konti og synkronisering mod et tilsluttet Supabase-testprojekt kræver ekstern opsætning. En manuel WCAG 2.2 AA-gennemgang med VoiceOver/TalkBack og længere belastningstest bør udføres før offentlig lancering. Produktionshosten skal desuden sætte transportheaders som HSTS; det kan ikke håndhæves af den statiske app alene.
+Fysiske iPhones, iPads og Android-enheder er ikke en del af den automatiske kørsel. Rigtige loginmails, to eksterne konti og synkronisering mellem fysiske enheder er endnu ikke afprøvet. En manuel WCAG 2.2 AA-gennemgang med VoiceOver/TalkBack og længere belastningstest bør udføres før offentlig lancering. Produktionshosten skal desuden sætte transportheaders som HSTS; det kan ikke håndhæves af den statiske app alene.
+
+Supabase-pilotprojektet blev tilsluttet 13. oktober 2026. Alle fem migrationer blev anvendt, og en livekontrol viste 18 af 18 applikationstabeller med RLS. Security Advisor viste ingen fejl. De tilbageværende advarsler om SECURITY DEFINER gælder appens bevidst autoriserede RPC'er; direkte API-adgang til Supabases automatiske RLS-hjælpefunktion blev tilbagekaldt i migration 005.
 
 ## Gentag kontrollen
 

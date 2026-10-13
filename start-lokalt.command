@@ -14,8 +14,23 @@ if ! command -v node >/dev/null 2>&1 || ! command -v pnpm >/dev/null 2>&1; then
   read -r '?Tryk Enter for at lukke.'
   exit 1
 fi
+app_url='http://127.0.0.1:5173/'
+if curl -fsS "$app_url" >/dev/null 2>&1; then
+  echo 'Få det Gjort kører allerede. Åbner appen i browseren.'
+  open "$app_url"
+  exit 0
+fi
 if [ ! -d node_modules ]; then
   pnpm install --frozen-lockfile
 fi
-echo 'Åbn adressen nedenfor i browseren. Ctrl+C stopper appen.'
+(
+  for attempt in {1..40}; do
+    if curl -fsS "$app_url" >/dev/null 2>&1; then
+      open "$app_url"
+      exit 0
+    fi
+    sleep 0.25
+  done
+) &
+echo 'Starter Få det Gjort og åbner appen automatisk. Ctrl+C stopper appen.'
 exec pnpm dev

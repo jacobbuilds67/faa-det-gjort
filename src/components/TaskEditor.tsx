@@ -1,21 +1,30 @@
+import { RecurrenceEditor } from './RecurrenceEditor';
 import { useRef, useEffect, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
-import type { Task, NamedEntity, Member, Context } from '../domain/model';
+import type { Task, NamedEntity, Member, Context, Project } from '../domain/model';
 import { priorityLabels } from '../domain/model';
 export function TaskEditor({
   task,
+  draft,
   locations,
   categories,
   members,
+  projects,
+  tasks,
+  initialProjectId,
   ctx,
   onSave,
   onClose,
   onArchive,
 }: {
   task?: Task;
+  draft?: Task;
   locations: NamedEntity[];
   categories: NamedEntity[];
   members: Member[];
+  projects: Project[];
+  tasks: Task[];
+  initialProjectId?: string | null;
   ctx: Context;
   onSave: (t: Task) => Promise<void>;
   onClose: () => void;
@@ -24,7 +33,7 @@ export function TaskEditor({
   const dialog = useRef<HTMLDialogElement>(null);
   const [value, setValue] = useState<Task>(
     () =>
-      task ?? {
+      task ?? draft ?? {
         id: crypto.randomUUID(),
         householdId: ctx.householdId,
         title: '',
@@ -36,6 +45,8 @@ export function TaskEditor({
           .slice(0, 1)
           .map((l) => l.id),
         categoryId: null,
+        projectId: initialProjectId ?? null,
+        dependencyIds: [],
         startDate: '',
         deadline: '',
         assigneeId: null,
@@ -73,7 +84,7 @@ export function TaskEditor({
         <header>
           <div>
             <p className="eyebrow">LIDT MERE OVERBLIK</p>
-            <h2 id="editor-title">{task ? 'Rediger opgave' : 'Hvad vil du have gjort?'}</h2>
+            <h2 id="editor-title">{task ? 'Rediger opgave' : draft ? 'Gennemse den fortolkede opgave' : 'Hvad vil du have gjort?'}</h2>
           </div>
           <button type="button" className="icon-button" aria-label="Luk" onClick={onClose}>
             <X size={22} />
@@ -169,7 +180,8 @@ export function TaskEditor({
             </select>
           </label>
         </div>
-        <details open={!!task?.description || !!task?.deadline || !!task?.startDate}>
+        <RecurrenceEditor value={value.recurrence} onChange={(v) => set('recurrence', v)} />
+        <details open={!!task?.description || !!task?.deadline || !!task?.startDate || !!value.projectId || !!value.dependencyIds?.length}>
           <summary>
             Flere detaljer <ChevronDown size={16} />
           </summary>
@@ -183,11 +195,15 @@ export function TaskEditor({
               placeholder="Det, der er godt at huske …"
             />
           </label>
+          {value.recurrence && (
+            <p className="muted small">Gentagelsens regel bestemmer datoerne for hver forekomst.</p>
+          )}
           <div className="form-grid">
             <label>
               Tidligst relevant
               <input
                 type="date"
+                disabled={!!value.recurrence}
                 value={value.startDate}
                 onChange={(e) => set('startDate', e.target.value)}
               />
@@ -197,6 +213,7 @@ export function TaskEditor({
               <input
                 type="date"
                 min={value.startDate || undefined}
+                disabled={!!value.recurrence}
                 value={value.deadline}
                 onChange={(e) => set('deadline', e.target.value)}
               />
@@ -216,6 +233,26 @@ export function TaskEditor({
               ))}
             </select>
           </label>
+          <label>
+            Projekt
+            <select value={value.projectId ?? ''} onChange={(e) => set('projectId', e.target.value || null)}>
+              <option value="">Uden projekt</option>
+              {projects.filter((project) => !project.archived || project.id === value.projectId).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+          </label>
+          <fieldset className="dependency-editor">
+            <legend>Skal vente på</legend>
+            <p className="muted small">Opgaven bliver først klar, når de valgte opgaver er afsluttet.</p>
+            <div className="dependency-list">
+              {tasks.filter((candidate) => candidate.id !== value.id && !candidate.archived).map((candidate) => (
+                <label key={candidate.id}>
+                  <input type="checkbox" checked={(value.dependencyIds ?? []).includes(candidate.id)} onChange={(e) => set('dependencyIds', e.target.checked ? [...(value.dependencyIds ?? []), candidate.id] : (value.dependencyIds ?? []).filter((id) => id !== candidate.id))}/>
+                  <span>{candidate.title}<small>{projects.find((project) => project.id === candidate.projectId)?.name ?? 'Uden projekt'}</small></span>
+                </label>
+              ))}
+              {!tasks.some((candidate) => candidate.id !== value.id && !candidate.archived) && <span className="muted small">Der er ingen andre opgaver at vælge endnu.</span>}
+            </div>
+          </fieldset>
         </details>
         {error && (
           <p className="error" role="alert">
@@ -234,7 +271,7 @@ export function TaskEditor({
             Annuller
           </button>
           <button disabled={busy} className="button primary">
-            {busy ? 'Gemmer …' : task ? 'Gem ændringer' : 'Opret opgave'}
+            {busy ? 'Gemmer …' : task ? 'Gem ændringer' : draft ? 'Godkend og opret' : 'Opret opgave'}
           </button>
         </footer>
       </form>

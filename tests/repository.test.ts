@@ -3,6 +3,7 @@ import { beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { AppDB, initialize, localContext } from '../src/data/db';
 import { saveTask, saveNamed, addExamples } from '../src/data/repository';
 import type { Task } from '../src/domain/model';
+import { saveProject } from '../src/data/projectRepository';
 let db: AppDB;
 beforeEach(async () => {
   db = new AppDB(crypto.randomUUID());
@@ -105,5 +106,22 @@ describe('offline repository', () => {
     expect(await db.tasks.count()).toBe(0);
     await addExamples(db, localContext);
     expect(await db.tasks.count()).toBe(5);
+  });
+  it('saves projects and links ordinary tasks as subtasks', async () => {
+    const now = new Date().toISOString();
+    const project = { id: crypto.randomUUID(), householdId: localContext.householdId, name: 'Nyt køkken', description: 'En rolig plan', archived: false, version: 0, createdAt: now, updatedAt: now };
+    await saveProject(db, localContext, project);
+    const t = await task();
+    await saveTask(db, localContext, { ...t, projectId: project.id });
+    expect((await db.projects.get(project.id))?.name).toBe('Nyt køkken');
+    expect((await db.tasks.get(t.id))?.projectId).toBe(project.id);
+  });
+  it('rejects missing projects and circular dependency chains atomically', async () => {
+    const a = await task(), b = { ...(await task()), title: 'Anden' };
+    await saveTask(db, localContext, a);
+    await saveTask(db, localContext, { ...b, dependencyIds: [a.id] });
+    await expect(saveTask(db, localContext, { ...(await db.tasks.get(a.id))!, dependencyIds: [b.id] })).rejects.toThrow('cirkel');
+    expect((await db.tasks.get(a.id))?.dependencyIds).toEqual([]);
+    await expect(saveTask(db, localContext, { ...(await task()), projectId: crypto.randomUUID() })).rejects.toThrow('Projektet');
   });
 });

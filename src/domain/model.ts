@@ -1,6 +1,9 @@
+import { recurrenceSchema, householdDate } from './recurrence';
+import type { WorkState, QueueState, WorkAction } from './work';
 import { z } from 'zod';
 export const taskSchema = z
   .object({
+    recurrence: recurrenceSchema.nullable().optional(),
     id: z.string().uuid(),
     householdId: z.string().uuid(),
     title: z.string().trim().min(1, 'Skriv en titel').max(160),
@@ -9,6 +12,8 @@ export const taskSchema = z
     priority: z.enum(['high', 'medium', 'low']),
     locationIds: z.array(z.string().uuid()).min(1, 'Vælg mindst én lokation'),
     categoryId: z.string().uuid().nullable(),
+    projectId: z.string().uuid().nullable().optional(),
+    dependencyIds: z.array(z.string().uuid()).max(100).optional(),
     startDate: z.string(),
     deadline: z.string(),
     assigneeId: z.string().uuid().nullable(),
@@ -38,6 +43,16 @@ export const taskSchema = z
       });
   });
 export type Task = z.infer<typeof taskSchema>;
+export type Project = {
+  id: string;
+  householdId: string;
+  name: string;
+  description: string;
+  archived: boolean;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
 export type NamedEntity = {
   id: string;
   householdId: string;
@@ -48,25 +63,32 @@ export type NamedEntity = {
 };
 export type Member = { userId: string; name: string; role: 'owner' | 'member' };
 export type Context = { userId: string; householdId: string; name: string; local: boolean };
+export type SyncedRecord = Task | NamedEntity | WorkState | QueueState | Project;
 export type Command = {
   id: string;
-  entity: 'task' | 'location' | 'category';
+  entity: 'task' | 'location' | 'category' | 'work' | 'queue' | 'history' | 'project';
+  completion?: WorkState;
+  occurrenceId?: string;
+  nextOccurrenceId?: string;
+  action?: WorkAction;
+  at?: number;
+  value?: number;
   entityId: string;
   baseVersion: number;
-  payload: Task | NamedEntity;
+  payload: SyncedRecord;
   createdAt: string;
 };
 export type Conflict = {
   id: string;
   command: Command;
-  server: Task | NamedEntity | null;
+  server: SyncedRecord | null;
   reason: string;
 };
 export const priorityLabels = { high: 'Høj', medium: 'Mellem', low: 'Lav' };
 export function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return householdDate();
 }
+
 export function isOverdue(task: Task, date = today()) {
   return !task.archived && !!task.deadline && task.deadline < date;
 }

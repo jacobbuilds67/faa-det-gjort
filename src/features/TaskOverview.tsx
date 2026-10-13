@@ -1,3 +1,4 @@
+import { remainingMinutes, type WorkState, type QueueState } from '../domain/work';
 import {
   Leaf,
   MapPin,
@@ -13,6 +14,10 @@ import type { Task, NamedEntity, Context } from '../domain/model';
 import type { Suggestion } from '../domain/suggestions';
 import { TaskCard } from '../components/TaskCard';
 type Props = {
+  works: WorkState[];
+  queue: QueueState;
+  onStart: (id: string) => void;
+  onAdd: (id: string) => void;
   page: 'today' | 'tasks';
   ctx: Context;
   tasks: Task[];
@@ -33,13 +38,17 @@ type Props = {
   ready: boolean;
   openTasks: Task[];
   overdue: number;
-  go: (p: 'tasks') => void;
+  go: (p: 'tasks' | 'queue') => void;
   setEditor: (t: Task | 'new') => void;
   handleSave: (t: Task) => Promise<void>;
   setError: (s: string) => void;
   onExamples: () => void;
 };
 export function TaskOverview({
+  works,
+  queue,
+  onStart,
+  onAdd,
   page,
   ctx,
   tasks,
@@ -214,6 +223,11 @@ export function TaskOverview({
                 <TaskCard
                   key={t.id}
                   task={t}
+                  work={works.find((w) => w.taskId === t.id)}
+                  queued={queue.items.includes(t.id)}
+                  waitingFor={(t.dependencyIds ?? []).map((id) => tasks.find((candidate) => candidate.id === id)).filter((candidate) => candidate && works.find((work) => work.taskId === candidate.id)?.status !== 'completed').map((candidate) => candidate!.title)}
+                  onStart={() => onStart(t.id)}
+                  onAdd={() => onAdd(t.id)}
                   suggestion={
                     page === 'today' ? suggestions.find((s) => s.task.id === t.id) : undefined
                   }
@@ -282,11 +296,40 @@ export function TaskOverview({
                 <span />
                 <span />
               </div>
-              <h3>En ting ad gangen.</h3>
+              <h3>
+                {queue.items.length
+                  ? `Min kø · ${queue.items.length} opgaver`
+                  : 'En ting ad gangen.'}
+              </h3>
+              {queue.items.length > 0 && (
+                <p className="muted">
+                  {Math.ceil(
+                    queue.items.reduce((sum, id) => {
+                      const t = tasks.find((t) => t.id === id);
+                      return (
+                        sum +
+                        (t
+                          ? remainingMinutes(
+                              t,
+                              works.find((w) => w.taskId === id),
+                            )
+                          : 0)
+                      );
+                    }, 0),
+                  )}{' '}
+                  min. i alt
+                  <br />
+                  Næste: {tasks.find((t) => t.id === queue.items[0])?.title}
+                </p>
+              )}
               <p className="muted">
-                Snart kan du samle opgaver i din egen kø og tage dem i dit tempo.
+                {queue.items.length
+                  ? `${queue.items.length} opgaver venter i din personlige kø.`
+                  : 'Saml opgaver i din egen kø og tag dem i dit tempo.'}
               </p>
-              <span className="phase-label">Kø og timer · fase 4</span>
+              <button className="button secondary" onClick={() => go('queue')}>
+                Åbn min kø <ArrowRight size={16} />
+              </button>
             </section>
             <section className="overview-card">
               <p className="eyebrow">LIGE NU</p>

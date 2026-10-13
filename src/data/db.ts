@@ -1,6 +1,12 @@
+import type { WorkState, QueueState, WorkEvent } from '../domain/work';
 import Dexie, { type Table } from 'dexie';
-import type { Task, NamedEntity, Command, Conflict, Context } from '../domain/model';
+import type { Task, NamedEntity, Command, Conflict, Context, Project } from '../domain/model';
 export class AppDB extends Dexie {
+  works!: Table<WorkState, string>;
+  history!: Table<WorkState, string>;
+  projects!: Table<Project, string>;
+  queues!: Table<QueueState, string>;
+  workEvents!: Table<WorkEvent, string>;
   tasks!: Table<Task, string>;
   locations!: Table<NamedEntity, string>;
   categories!: Table<NamedEntity, string>;
@@ -17,6 +23,32 @@ export class AppDB extends Dexie {
       conflicts: 'id',
       preferences: 'key',
     });
+    this.version(2).stores({
+      works: 'id,taskId,status',
+      queues: 'id,ownerId',
+      workEvents: 'id,workId,at',
+    });
+    this.version(3)
+      .stores({ history: 'id,taskId,status,completedAt' })
+      .upgrade(async (tx) => {
+        for (const q of await tx.table('queues').toArray())
+          await tx.table('queues').put({
+            ...q,
+            occurrenceIds: Object.fromEntries(q.items.map((id: string) => [id, id])),
+          });
+        const terminal = await tx.table('works').toArray();
+        for (const w of terminal)
+          if (['completed', 'skipped'].includes(w.status))
+            await tx
+              .table('history')
+              .put({
+                ...w,
+                taskSnapshot: w.taskSnapshot ?? (await tx.table('tasks').get(w.taskId)),
+                id: w.occurrenceId ?? w.id,
+                occurrenceId: w.occurrenceId ?? w.id,
+              });
+      });
+    this.version(4).stores({ projects: 'id,householdId,archived' });
   }
 }
 export const localContext: Context = {

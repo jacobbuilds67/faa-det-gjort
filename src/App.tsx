@@ -6,6 +6,43 @@ import { supabase } from './data/supabase';
 import type { Context, Member } from './domain/model';
 import { Auth, HouseholdSetup } from './components/Auth';
 import { Workspace } from './features/Workspace';
+
+function readCachedHousehold(
+  key: string,
+): { ctx: { householdId: string; name: string }; members: Member[] } | null {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const value = JSON.parse(cached) as {
+      ctx?: { householdId?: unknown; name?: unknown };
+      members?: unknown;
+    };
+    if (
+      typeof value.ctx?.householdId !== 'string' ||
+      typeof value.ctx.name !== 'string' ||
+      !Array.isArray(value.members) ||
+      !value.members.every(
+        (member) =>
+          member &&
+          typeof member === 'object' &&
+          typeof (member as Member).userId === 'string' &&
+          typeof (member as Member).name === 'string' &&
+          ['owner', 'member'].includes((member as Member).role),
+      )
+    ) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return {
+      ctx: { householdId: value.ctx.householdId, name: value.ctx.name },
+      members: value.members as Member[],
+    };
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+}
+
 export default function App() {
   const [local, setLocal] = useState(() => localStorage.getItem('hverdagsro-mode') === 'local');
   const [session, setSession] = useState<Session | null>(null),
@@ -32,9 +69,8 @@ export default function App() {
     setError('');
     try {
       if (!navigator.onLine) {
-        const cached = localStorage.getItem(`hverdagsro-household:${session.user.id}`);
-        if (cached) {
-          const data = JSON.parse(cached);
+        const data = readCachedHousehold(`hverdagsro-household:${session.user.id}`);
+        if (data) {
           setCtx({ ...data.ctx, userId: session.user.id, local: false });
           setMembers(data.members);
           return;

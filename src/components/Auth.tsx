@@ -13,7 +13,7 @@ export function Auth({ onLocal }: { onLocal: () => void }) {
           <span className="brand-mark">
             <Leaf />
           </span>
-          hverdagsro<span className="brand-dot">.</span>
+          Få det Gjort<span className="brand-dot">.</span>
         </div>
         <p className="eyebrow">PLADS TIL DET, DER BETYDER NOGET</p>
         <h1>

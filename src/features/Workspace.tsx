@@ -1,3 +1,7 @@
+import { QueueView } from './QueueView';
+import { InsightsView } from './InsightsView';
+import { actOnWork, changeQueue, defaultQueue } from '../data/workRepository';
+import { elapsedSeconds, timerLabel, type QueueState, type WorkAction } from '../domain/work';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
@@ -6,6 +10,7 @@ import {
   LayoutList,
   ListMusic,
   Layers,
+  ChartNoAxesColumnIncreasing,
   Settings as SettingsIcon,
   Plus,
   ArrowRight,
@@ -18,6 +23,7 @@ import {
 } from 'lucide-react';
 import { AppDB, initialize } from '../data/db';
 import { saveTask, addExamples } from '../data/repository';
+import { saveProject } from '../data/projectRepository';
 import { synchronize } from '../data/sync';
 import { suggestTasks } from '../domain/suggestions';
 import {
@@ -31,12 +37,17 @@ import {
 import { TaskEditor } from '../components/TaskEditor';
 import { TaskOverview } from './TaskOverview';
 import { Settings } from '../components/Settings';
-type Page = 'today' | 'tasks' | 'queue' | 'projects' | 'settings';
+import { ProjectsView } from './ProjectsView';
+import { QuickAdd } from '../components/QuickAdd';
+import { ReminderPanel } from '../components/ReminderPanel';
+import { remindersFor, type ReminderKind } from '../domain/insights';
+type Page = 'today' | 'tasks' | 'queue' | 'projects' | 'insights' | 'settings';
 const nav = [
   { id: 'today', label: 'I dag', icon: Sun },
   { id: 'tasks', label: 'Opgaver', icon: LayoutList },
   { id: 'queue', label: 'Min kø', icon: ListMusic },
   { id: 'projects', label: 'Projekter', icon: Layers },
+  { id: 'insights', label: 'Statistik', icon: ChartNoAxesColumnIncreasing },
   { id: 'settings', label: 'Indstillinger', icon: SettingsIcon },
 ] as const;
 export function Workspace({
@@ -48,6 +59,10 @@ export function Workspace({
   members: Member[];
   onExit: () => Promise<void>;
 }) {
+  type InstallPromptEvent = Event & {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  };
   const db = useMemo(
     () => new AppDB(`${ctx.userId}-${ctx.householdId}`),
     [ctx.userId, ctx.householdId],
@@ -55,6 +70,8 @@ export function Workspace({
   const [page, setPage] = useState<Page>('today'),
     [ready, setReady] = useState(false),
     [editor, setEditor] = useState<Task | 'new' | null>(null),
+    [quickDraft, setQuickDraft] = useState<Task | null>(null),
+    [initialProjectId, setInitialProjectId] = useState<string | null>(null),
     [query, setQuery] = useState(''),
     [location, setLocation] = useState('all'),
     [minutes, setMinutes] = useState(30),
@@ -64,17 +81,63 @@ export function Workspace({
     [notice, setNotice] = useState(''),
     [online, setOnline] = useState(navigator.onLine),
     [syncing, setSyncing] = useState(false),
+    [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null),
+    [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches),
     [mobileMenu, setMobileMenu] = useState(false);
-  const tasks = useLiveQuery(() => db.tasks.toArray(), [db]) ?? [],
+  const storedTasks = useLiveQuery(() => db.tasks.toArray(), [db]) ?? [],
     locations = useLiveQuery(() => db.locations.toArray(), [db]) ?? [],
     categories = useLiveQuery(() => db.categories.toArray(), [db]) ?? [],
+    projects = useLiveQuery(() => db.projects.toArray(), [db]) ?? [],
     pending = useLiveQuery(() => db.outbox.count(), [db]) ?? 0,
     conflicts = useLiveQuery(() => db.conflicts.toArray(), [db]) ?? [];
+  const preferences = useLiveQuery(() => db.preferences.toArray(), [db]) ?? [];
+  const works = useLiveQuery(() => db.works.toArray(), [db]) ?? [];
+  const rawQueue =
+    useLiveQuery(() => db.queues.get(ctx.userId), [db, ctx.userId]) ?? defaultQueue(ctx);
+  const tasks = storedTasks.map((t) => {
+    const w = works.find((w) => w.taskId === t.id);
+    return w
+      ? {
+          ...t,
+          startDate: w.plannedStart ?? t.startDate,
+          deadline: w.plannedDeadline ?? t.deadline,
+        }
+      : t;
+  });
+  const history = useLiveQuery(() => db.history.toArray(), [db]) ?? [];
+  const preferenceEnabled = (key: string, fallback: boolean) => {
+    const value = preferences.find((entry) => entry.key === key)?.value;
+    return value === undefined ? fallback : value === 'true';
+  };
+  const reminderKinds = (['current', 'deadline', 'overdue'] as ReminderKind[]).filter((kind) =>
+    preferenceEnabled(`reminder-${kind}`, true),
+  );
+  const reminders = remindersFor(tasks, works, reminderKinds);
+  const queue = {
+    ...rawQueue,
+    items: rawQueue.items.filter((id) => {
+      const w = works.find((w) => w.taskId === id);
+      return (
+        !['completed', 'skipped'].includes(w?.status ?? '') &&
+        (!rawQueue.occurrenceIds?.[id] || rawQueue.occurrenceIds[id] === (w?.occurrenceId ?? id))
+      );
+    }),
+  };
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const sync = useCallback(async () => {
     if (ctx.local) return;
+    if (!navigator.onLine) {
+      setError('Ændringerne er gemt lokalt og synkroniseres, når forbindelsen vender tilbage.');
+      return;
+    }
     setSyncing(true);
     try {
       await synchronize(db, ctx.householdId);
+      await db.preferences.put({ key: 'last-sync', value: new Date().toISOString() });
       setError('');
     } catch (e) {
       setError(
@@ -84,6 +147,22 @@ export function Workspace({
       setSyncing(false);
     }
   }, [db, ctx.local, ctx.householdId]);
+  useEffect(() => {
+    const ready = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
+    const complete = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
+    window.addEventListener('beforeinstallprompt', ready);
+    window.addEventListener('appinstalled', complete);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', ready);
+      window.removeEventListener('appinstalled', complete);
+    };
+  }, []);
   useEffect(() => {
     let active = true;
     initialize(db, ctx)
@@ -125,11 +204,44 @@ export function Workspace({
     const t = setTimeout(() => setNotice(''), 4500);
     return () => clearTimeout(t);
   }, [notice]);
+  useEffect(() => {
+    if (
+      !preferenceEnabled('reminder-system', false) ||
+      !('Notification' in window) ||
+      Notification.permission !== 'granted' ||
+      document.visibilityState === 'visible'
+    ) return;
+    void (async () => {
+      for (const reminder of reminders) {
+        const key = `reminder-sent:${reminder.fingerprint}`;
+        if (await db.preferences.get(key)) continue;
+        try {
+          const registration = 'serviceWorker' in navigator
+            ? await navigator.serviceWorker.getRegistration()
+            : undefined;
+          if (registration) {
+            await registration.showNotification(reminder.title, {
+              body: reminder.detail,
+              tag: reminder.fingerprint,
+              icon: '/pwa-icon.svg',
+            });
+          } else {
+            new Notification(reminder.title, { body: reminder.detail, tag: reminder.fingerprint });
+          }
+          await db.preferences.put({ key, value: new Date().toISOString() });
+        } catch {
+          // Interne påmindelser forbliver tilgængelige, hvis platformen afviser systemvisningen.
+        }
+      }
+    })();
+  }, [db, reminders, preferences]);
   const changeLocation = (id: string) => {
     setLocation(id);
     void db.preferences.put({ key: 'location', value: id }).catch((e) => setError(String(e)));
   };
-  const openTasks = tasks.filter((t) => !t.archived),
+  const openTasks = tasks.filter(
+      (t) => !t.archived && !works.some((w) => w.taskId === t.id && w.status === 'completed'),
+    ),
     overdue = openTasks.filter((t) => isOverdue(t)).length;
   const suggestions = suggestTasks({
     tasks,
@@ -137,6 +249,23 @@ export function Workspace({
     locationId: location,
     availableMinutes: minutes,
     asOfDate: today(),
+    execution: Object.fromEntries(
+      tasks.map((t) => {
+        const w = works.find((value) => value.taskId === t.id);
+        return [
+        t.id,
+        {
+          status: w?.status ?? 'open',
+          dependencyIds: t.dependencyIds ?? [],
+          recurring: !!t.recurrence,
+          recurrenceDue: !w?.plannedStart || w.plannedStart <= today(),
+          spentMinutes: w ? elapsedSeconds(w, now) / 60 : 0,
+          remainingOverride: w?.remainingMinutes ?? null,
+          heldByOtherUser: w?.status === 'running' && w.actorId !== ctx.userId,
+        },
+      ] as const;
+      }),
+    ),
   });
   const visible =
     page === 'today'
@@ -157,10 +286,42 @@ export function Workspace({
     setMobileMenu(false);
   };
   const handleSave = async (t: Task) => {
+    if (t.archived && works.some((w) => w.taskId === t.id && w.status === 'running'))
+      throw new Error('Sæt opgaven på pause før den arkiveres.');
     await saveTask(db, ctx, t);
     setNotice('Opgaven er gemt');
     void sync();
   };
+  const handleProjectSave = async (project: import('../domain/model').Project) => {
+    await saveProject(db, ctx, project);
+    setNotice('Projektet er gemt');
+    void sync();
+  };
+  const updateQueue = async (change: (q: QueueState) => QueueState) => {
+    try {
+      await changeQueue(db, ctx, change);
+      void sync();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  const action = async (id: string, act: WorkAction, value?: number, occurrenceId?: string) => {
+    try {
+      await actOnWork(db, ctx, id, act, value, Date.now(), occurrenceId);
+      setError('');
+      if (act === 'skipOccurrence')
+        setNotice('Denne forekomst er sprunget over. Næste dato er beregnet.');
+      if (['complete', 'skipOccurrence', 'skip'].includes(act))
+        document.getElementById('main')?.focus({ preventScroll: true });
+      if (act === 'complete') setNotice('Godt klaret. Den næste opgave venter, til du er klar.');
+      void sync();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return false;
+    }
+  };
+  const active = works.find((w) => w.status === 'running' && w.actorId === ctx.userId);
   const exit = async () => {
     try {
       await onExit();
@@ -185,7 +346,7 @@ export function Workspace({
           <span className="brand-mark">
             <Leaf size={23} />
           </span>
-          hverdagsro<span className="brand-dot">.</span>
+          Få det Gjort<span className="brand-dot">.</span>
         </a>
         <button
           className="icon-button mobile-close"
@@ -215,9 +376,7 @@ export function Workspace({
               <Icon size={20} />
               <span>{label}</span>
               {id === 'tasks' && <small>{openTasks.length}</small>}
-              {(id === 'queue' || id === 'projects') && (
-                <span className="soon-dot" title="Kommer i næste fase" />
-              )}
+              {id === 'projects' && projects.filter((project) => !project.archived).length > 0 && <small>{projects.filter((project) => !project.archived).length}</small>}
             </button>
           ))}
         </nav>
@@ -276,7 +435,7 @@ export function Workspace({
             </span>
             <button
               className="button primary compact"
-              onClick={() => setEditor('new')}
+              onClick={() => { setInitialProjectId(null); setQuickDraft(null); setEditor('new'); }}
               disabled={!ready || !locations.length}
             >
               <Plus size={18} />
@@ -298,6 +457,23 @@ export function Workspace({
               {conflicts.length} ændring(er) kræver dit valg. Åbn konflikter →
             </button>
           )}
+          {active && page !== 'queue' && (
+            <div className="active-work">
+              <div>
+                <strong>{tasks.find((t) => t.id === active.taskId)?.title}</strong>
+                <span className="timer">{timerLabel(elapsedSeconds(active, now))}</span>
+              </div>
+              <button
+                className="button secondary compact"
+                onClick={() => void action(active.taskId, 'pause')}
+              >
+                Pause
+              </button>
+              <button className="text-button" onClick={() => go('queue')}>
+                Åbn kø og timer →
+              </button>
+            </div>
+          )}
           {page === 'settings' ? (
             <Settings
               db={db}
@@ -306,32 +482,56 @@ export function Workspace({
               categories={categories}
               members={members}
               conflicts={conflicts}
+              pending={pending}
+              online={online}
+              syncing={syncing}
+              installAvailable={!!installPrompt}
+              installed={installed}
+              onInstall={async () => {
+                if (!installPrompt) return;
+                await installPrompt.prompt();
+                const choice = await installPrompt.userChoice;
+                if (choice.outcome === 'accepted') setInstalled(true);
+                setInstallPrompt(null);
+              }}
               onExit={exit}
-              onSync={() => void sync()}
+              onSync={sync}
             />
-          ) : page === 'queue' || page === 'projects' ? (
-            <section className="coming-page">
-              <span className="empty-symbol">
-                {page === 'queue' ? <ListMusic size={38} /> : <Layers size={38} />}
-              </span>
-              <p className="eyebrow">NÆSTE KAPITEL</p>
-              <h1>
-                {page === 'queue'
-                  ? 'Din kø får snart sin plads.'
-                  : 'Fra små opgaver til større projekter.'}
-              </h1>
-              <p>
-                {page === 'queue'
-                  ? 'Den personlige kø og timeren bygges i fase 4. Indtil da kan du samle og organisere opgaverne.'
-                  : 'Projektforløb og afhængigheder bygges i fase 6. Opgaveregisteret er klar allerede nu.'}
-              </p>
-              <button className="button primary" onClick={() => go('tasks')}>
-                Se dine opgaver <ArrowRight size={17} />
-              </button>
-            </section>
+          ) : page === 'queue' ? (
+            <QueueView
+              history={history}
+              members={members}
+              tasks={tasks}
+              works={works}
+              queue={queue}
+              userId={ctx.userId}
+              now={now}
+              onQueue={updateQueue}
+              onAction={action}
+            />
+          ) : page === 'projects' ? (
+            <ProjectsView householdId={ctx.householdId} projects={projects} tasks={tasks} works={works} onSave={handleProjectSave} onNewTask={(projectId) => { setInitialProjectId(projectId); setEditor('new'); }} onEditTask={(task) => { setInitialProjectId(null); setEditor(storedTasks.find((value) => value.id === task.id) ?? task); }}/>
+          ) : page === 'insights' ? (
+            <InsightsView tasks={tasks} works={works} history={history} locations={locations} categories={categories} members={members} userId={ctx.userId} onCorrect={(taskId, value, occurrenceId) => action(taskId, 'correct', value, occurrenceId)} />
           ) : (
             <>
+              {page === 'today' && (
+                <QuickAdd ctx={ctx} locations={locations} categories={categories} onReview={(task) => { setInitialProjectId(null); setQuickDraft(task); setEditor('new'); }}/>
+              )}
+              {page === 'today' && preferenceEnabled('reminder-internal', true) && (
+                <ReminderPanel reminders={reminders} onOpen={(taskId) => { const task = storedTasks.find((value) => value.id === taskId); if (task) { setQuickDraft(null); setEditor(task); } }}/>
+              )}
               <TaskOverview
+                works={works}
+                queue={queue}
+                onStart={(id) => {
+                  void action(id, 'start').then((ok) => {
+                    if (ok) go('queue');
+                  });
+                }}
+                onAdd={(id) => {
+                  void updateQueue((q) => ({ ...q, items: [...q.items, id] }));
+                }}
                 page={page}
                 ctx={ctx}
                 tasks={tasks}
@@ -353,7 +553,7 @@ export function Workspace({
                 openTasks={openTasks}
                 overdue={overdue}
                 go={go}
-                setEditor={setEditor}
+                setEditor={(t) => { setInitialProjectId(null); setQuickDraft(null); setEditor(t === 'new' ? t : (storedTasks.find((s) => s.id === t.id) ?? t)); }}
                 handleSave={handleSave}
                 setError={setError}
                 onExamples={() =>
@@ -365,7 +565,9 @@ export function Workspace({
             </>
           )}
           <footer className="page-footer">
-            <span className="jm-brand"><img src="/jm-microapps-logo.png" alt="JM MicroApps" width="1536" height="1024" /></span>
+            <span className="jm-brand">
+              <img src="/jm-microapps-logo.png" alt="JM MicroApps" width="1536" height="1024" />
+            </span>
             <span>Lidt ad gangen er også fremad.</span>
           </footer>
         </main>
@@ -386,12 +588,16 @@ export function Workspace({
       {editor && (
         <TaskEditor
           task={editor === 'new' ? undefined : editor}
+          draft={editor === 'new' ? quickDraft ?? undefined : undefined}
           locations={locations}
           categories={categories}
           members={members}
+          projects={projects}
+          tasks={storedTasks}
+          initialProjectId={initialProjectId}
           ctx={ctx}
           onSave={handleSave}
-          onClose={() => setEditor(null)}
+          onClose={() => { setEditor(null); setQuickDraft(null); setInitialProjectId(null); }}
           onArchive={() => {
             if (editor !== 'new') {
               const t = editor;

@@ -1,3 +1,5 @@
+import { recurrenceLabel } from '../domain/recurrence';
+import type { WorkState } from '../domain/work';
 import type { Suggestion } from '../domain/suggestions';
 import {
   Clock3,
@@ -18,6 +20,11 @@ import {
   type NamedEntity,
 } from '../domain/model';
 export function TaskCard({
+  work,
+  queued,
+  waitingFor,
+  onStart,
+  onAdd,
   task,
   suggestion,
   locations,
@@ -25,6 +32,11 @@ export function TaskCard({
   onEdit,
   onRestore,
 }: {
+  work?: WorkState;
+  queued: boolean;
+  waitingFor: string[];
+  onStart: () => void;
+  onAdd: () => void;
   task: Task;
   suggestion?: Suggestion;
   locations: NamedEntity[];
@@ -68,9 +80,13 @@ export function TaskCard({
           </span>
           <span className="category-name">{category}</span>
         </div>
+        {task.recurrence && (
+          <p className="suggestion-reason">↻ {recurrenceLabel(task.recurrence)}</p>
+        )}
         {suggestion && (
           <p className="suggestion-reason">{suggestion.reasons.slice(0, 2).join(' · ')}</p>
         )}
+        {!!waitingFor.length && <p className="dependency-note">Venter på: {waitingFor.join(', ')}</p>}
         {task.deadline && (
           <p className={overdue ? 'deadline overdue' : 'deadline'}>
             {overdue ? 'Overskredet · ' : 'Deadline · '}
@@ -86,6 +102,28 @@ export function TaskCard({
               new Date(task.startDate + 'T12:00:00'),
             )}
           </p>
+        )}
+        {work?.status === 'completed' ? (
+          <p className="suggestion-reason">✓ Afsluttet</p>
+        ) : (
+          !task.archived && (
+            <div className="work-actions">
+              <button className="text-button" disabled={queued} onClick={onAdd}>
+                {queued ? 'I din kø' : 'Tilføj til kø'}
+              </button>
+              <button
+                className="text-button"
+                disabled={!!planned || work?.status === 'running' || waitingFor.length > 0}
+                onClick={onStart}
+              >
+                {work?.status === 'running'
+                  ? 'I gang'
+                  : work?.status === 'paused'
+                    ? 'Fortsæt'
+                    : waitingFor.length ? 'Afventer' : 'Start nu'}
+              </button>
+            </div>
+          )
         )}
       </div>
       <button

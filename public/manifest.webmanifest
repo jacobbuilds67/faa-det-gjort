@@ -1,0 +1,19 @@
+{
+  "name": "Få det Gjort",
+  "short_name": "Få det Gjort",
+  "description": "Opgaver med ro, kø, timer, påmindelser, statistik og projekter.",
+  "lang": "da",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f5ef",
+  "theme_color": "#183a32",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

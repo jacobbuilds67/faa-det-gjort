@@ -26,3 +26,11 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </ErrorBoundary>,
 );
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // IndexedDB og den almindelige webapp virker fortsat, hvis browseren afviser installation.
+    });
+  });
+}

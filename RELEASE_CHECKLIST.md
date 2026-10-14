@@ -15,7 +15,7 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 
 ## 2. Lukket to-bruger-pilot
 
-- Opret en ny testhusstand med bruger A, og registrér bruger B via Indstillinger.
+- [x] Opret pilothusstanden med bruger A, og registrér bruger B via Indstillinger.
 - Kontrollér fælles oprettelse, redigering, afslutning og historik på to enheder.
 - Kontrollér, at hver bruger beholder sin egen kø.
 - Redigér samme opgave offline på begge enheder, gå online, og gennemfør konfliktvalget.

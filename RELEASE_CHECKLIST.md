@@ -10,7 +10,7 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 - [x] Kopiér kun projektets URL og **publishable key** til `.env`. Secret/service-role key bruges ikke i frontend.
 - [x] Verificér 18 applikationstabeller, RLS på alle 18 og Supabase Security Advisor uden fejl.
 - [ ] Konfigurér en egnet mailafsender før almindelig brug.
-- [ ] Kør det første loginlink og opret pilothusstanden.
+- [x] Kør det første loginlink og opret pilothusstanden **Vores husstand** med den første ejer.
 - [x] Kør `pnpm release:check`.
 
 ## 2. Lukket to-bruger-pilot

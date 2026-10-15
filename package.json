@@ -19,7 +19,6 @@
     "format": "prettier --write src tests *.ts *.json *.md"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.0",
     "dexie": "^4.2.0",
     "dexie-react-hooks": "^4.2.0",
     "lucide-react": "^0.468.0",
@@ -28,7 +27,6 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/vite": "^4.1.0",
     "@types/react": "^19.1.0",

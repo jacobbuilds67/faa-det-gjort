@@ -8,7 +8,6 @@ async function settings(page: any) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
 });
 
 test('installs its offline shell and reopens saved tasks without network', async ({ page, context }) => {
@@ -43,9 +42,9 @@ test('exports a reviewed backup and restores it after explicit confirmation', as
   await page.getByRole('button', { name: 'Opret opgave', exact: true }).click();
   await settings(page);
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Eksportér backup', exact: true }).click();
+  await page.getByRole('button', { name: 'Eksportér familiebackup', exact: true }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^faa-det-gjort-backup-\d{4}-\d{2}-\d{2}\.json$/);
+  expect(download.suggestedFilename()).toMatch(/^faa-det-gjort-familiebackup-\d{4}-\d{2}-\d{2}\.json$/);
   const stream = await download.createReadStream();
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
@@ -57,6 +56,7 @@ test('exports a reviewed backup and restores it after explicit confirmation', as
   await settings(page);
   await page.locator('.file-button input').setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: file });
   await expect(page.getByText('Kontrollér før import', { exact: true })).toBeVisible();
+  await page.getByText('Gendan hele backupen', { exact: true }).click();
   const replace = page.getByRole('button', { name: 'Erstat lokale data', exact: true });
   await expect(replace).toBeDisabled();
   await page.getByLabel('Jeg har kontrolleret filen og vil erstatte alle lokale data.').check();

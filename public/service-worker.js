@@ -1,30 +1,32 @@
-const CACHE = 'faa-det-gjort-v10';
+const CACHE = 'faa-det-gjort-v11';
+const BASE = new URL('./', self.registration.scope).pathname;
+const asset = (path) => `${BASE}${path}`;
 const CORE = [
-  '/',
-  '/index.html',
-  '/assets/app.js',
-  '/assets/index.css',
-  '/assets/Workspace.js',
-  '/assets/vendor-icons.js',
-  '/assets/vendor-react.js',
-  '/assets/vendor-storage.js',
-  '/assets/vendor-supabase.js',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/pwa-icon.svg',
-  '/jm-microapps-logo.png',
+  BASE,
+  asset('index.html'),
+  asset('assets/app.js'),
+  asset('assets/index.css'),
+  asset('assets/Workspace.js'),
+  asset('assets/vendor-icons.js'),
+  asset('assets/vendor-react.js'),
+  asset('assets/vendor-storage.js'),
+  asset('manifest.webmanifest'),
+  asset('favicon.svg'),
+  asset('pwa-icon.svg'),
+  asset('jm-microapps-logo.png'),
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE);
-      const page = await fetch('/index.html');
+      const page = await fetch(asset('index.html'));
       const html = await page.clone().text();
       const assets = [...html.matchAll(/(?:src|href)="([^"#]+)"/g)]
         .map((match) => match[1])
-        .filter((path) => path.startsWith('/'));
-      await cache.put('/index.html', page);
+        .map((path) => new URL(path, self.registration.scope).pathname)
+        .filter((path) => path.startsWith(BASE));
+      await cache.put(asset('index.html'), page);
       await cache.addAll([...new Set([...CORE, ...assets])]);
       await self.skipWaiting();
     })(),
@@ -55,7 +57,7 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE).then((cache) => cache.put('/index.html', response.clone()));
           return response;
         })
-        .catch(async () => (await caches.match('/index.html')) || Response.error()),
+        .catch(async () => (await caches.match(asset('index.html'))) || Response.error()),
     );
     return;
   }
@@ -77,7 +79,7 @@ self.addEventListener('notificationclick', (event) => {
       const existing = clients.find(
         (client) => new URL(client.url).origin === self.location.origin,
       );
-      return existing ? existing.focus() : self.clients.openWindow('/');
+      return existing ? existing.focus() : self.clients.openWindow(BASE);
     }),
   );
 });

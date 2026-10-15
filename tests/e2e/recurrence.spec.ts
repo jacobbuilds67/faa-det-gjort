@@ -9,7 +9,6 @@ async function nav(page: any, name: string) {
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-12T10:00:00Z') });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
 });
 test('recurring completion advances once and old time remains editable after reload', async ({
   page,

@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
 });
 test('create, reopen, edit, archive and restore a task', async ({ page }) => {
   await page.getByRole('button', { name: 'Ny opgave', exact: true }).click();

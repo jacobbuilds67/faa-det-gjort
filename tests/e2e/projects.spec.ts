@@ -6,7 +6,6 @@ async function nav(page: any, name: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
 });
 
 test('project subtasks respect dependencies and update progress', async ({ page }, testInfo) => {

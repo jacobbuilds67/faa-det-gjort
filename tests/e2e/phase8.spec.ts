@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 async function local(page: any) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
 }
 
 async function navigate(page: any, desktop: string, mobile: string = desktop) {

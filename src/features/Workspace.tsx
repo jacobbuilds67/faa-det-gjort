@@ -2,7 +2,7 @@ import { QueueView } from './QueueView';
 import { InsightsView } from './InsightsView';
 import { actOnWork, changeQueue, defaultQueue } from '../data/workRepository';
 import { elapsedSeconds, timerLabel, type QueueState, type WorkAction } from '../domain/work';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Leaf,
@@ -15,7 +15,6 @@ import {
   Plus,
   ArrowRight,
   CloudOff,
-  Cloud,
   Check,
   ChevronRight,
   Menu,
@@ -24,7 +23,6 @@ import {
 import { AppDB, initialize } from '../data/db';
 import { saveTask, addExamples } from '../data/repository';
 import { saveProject } from '../data/projectRepository';
-import { synchronize } from '../data/sync';
 import { suggestTasks } from '../domain/suggestions';
 import {
   today,
@@ -53,11 +51,13 @@ const nav = [
 export function Workspace({
   ctx,
   members,
-  onExit,
+  onProfileChange,
+  onMembersChange,
 }: {
   ctx: Context;
   members: Member[];
-  onExit: () => Promise<void>;
+  onProfileChange: (name: string) => void;
+  onMembersChange: (members: Member[]) => void;
 }) {
   type InstallPromptEvent = Event & {
     prompt: () => Promise<void>;
@@ -79,17 +79,13 @@ export function Workspace({
     [archived, setArchived] = useState(false),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
-    [online, setOnline] = useState(navigator.onLine),
-    [syncing, setSyncing] = useState(false),
     [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null),
     [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches),
     [mobileMenu, setMobileMenu] = useState(false);
   const storedTasks = useLiveQuery(() => db.tasks.toArray(), [db]) ?? [],
     locations = useLiveQuery(() => db.locations.toArray(), [db]) ?? [],
     categories = useLiveQuery(() => db.categories.toArray(), [db]) ?? [],
-    projects = useLiveQuery(() => db.projects.toArray(), [db]) ?? [],
-    pending = useLiveQuery(() => db.outbox.count(), [db]) ?? 0,
-    conflicts = useLiveQuery(() => db.conflicts.toArray(), [db]) ?? [];
+    projects = useLiveQuery(() => db.projects.toArray(), [db]) ?? [];
   const preferences = useLiveQuery(() => db.preferences.toArray(), [db]) ?? [];
   const works = useLiveQuery(() => db.works.toArray(), [db]) ?? [];
   const rawQueue =
@@ -128,25 +124,6 @@ export function Workspace({
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const sync = useCallback(async () => {
-    if (ctx.local) return;
-    if (!navigator.onLine) {
-      setError('Ændringerne er gemt lokalt og synkroniseres, når forbindelsen vender tilbage.');
-      return;
-    }
-    setSyncing(true);
-    try {
-      await synchronize(db, ctx.householdId);
-      await db.preferences.put({ key: 'last-sync', value: new Date().toISOString() });
-      setError('');
-    } catch (e) {
-      setError(
-        `Ændringerne er gemt lokalt. Synkronisering: ${e instanceof Error ? e.message : String(e)}`,
-      );
-    } finally {
-      setSyncing(false);
-    }
-  }, [db, ctx.local, ctx.householdId]);
   useEffect(() => {
     const ready = (event: Event) => {
       event.preventDefault();
@@ -171,7 +148,6 @@ export function Workspace({
         if (active) {
           setLocation(p?.value ?? 'all');
           setReady(true);
-          void sync();
         }
       })
       .catch((e) => setError(String(e)));
@@ -179,26 +155,7 @@ export function Workspace({
       active = false;
       db.close();
     };
-  }, [db, ctx, sync]);
-  useEffect(() => {
-    const connect = () => {
-        setOnline(navigator.onLine);
-        if (navigator.onLine) void sync();
-      },
-      focus = () => {
-        if (document.visibilityState === 'visible') void sync();
-      };
-    window.addEventListener('online', connect);
-    window.addEventListener('offline', connect);
-    document.addEventListener('visibilitychange', focus);
-    const interval = setInterval(() => void sync(), 20000);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('online', connect);
-      window.removeEventListener('offline', connect);
-      document.removeEventListener('visibilitychange', focus);
-    };
-  }, [sync]);
+  }, [db, ctx]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(''), 4500);
@@ -223,7 +180,7 @@ export function Workspace({
             await registration.showNotification(reminder.title, {
               body: reminder.detail,
               tag: reminder.fingerprint,
-              icon: '/pwa-icon.svg',
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`,
             });
           } else {
             new Notification(reminder.title, { body: reminder.detail, tag: reminder.fingerprint });
@@ -290,17 +247,14 @@ export function Workspace({
       throw new Error('Sæt opgaven på pause før den arkiveres.');
     await saveTask(db, ctx, t);
     setNotice('Opgaven er gemt');
-    void sync();
   };
   const handleProjectSave = async (project: import('../domain/model').Project) => {
     await saveProject(db, ctx, project);
     setNotice('Projektet er gemt');
-    void sync();
   };
   const updateQueue = async (change: (q: QueueState) => QueueState) => {
     try {
       await changeQueue(db, ctx, change);
-      void sync();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -314,7 +268,6 @@ export function Workspace({
       if (['complete', 'skipOccurrence', 'skip'].includes(act))
         document.getElementById('main')?.focus({ preventScroll: true });
       if (act === 'complete') setNotice('Godt klaret. Den næste opgave venter, til du er klar.');
-      void sync();
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -322,13 +275,6 @@ export function Workspace({
     }
   };
   const active = works.find((w) => w.status === 'running' && w.actorId === ctx.userId);
-  const exit = async () => {
-    try {
-      await onExit();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  };
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -361,7 +307,7 @@ export function Workspace({
           </span>
           <div>
             {ctx.name}
-            <small>{ctx.local ? 'Dit lokale rum' : `${members.length} i husstanden`}</small>
+            <small>Lokalt familierum</small>
           </div>
         </div>
         <p className="nav-label">DIT OVERBLIK</p>
@@ -393,13 +339,11 @@ export function Workspace({
         </div>
         <button className="profile" onClick={() => go('settings')}>
           <span className="avatar profile-avatar">
-            {ctx.local
-              ? 'D'
-              : (members.find((m) => m.userId === ctx.userId)?.name ?? 'D')[0].toUpperCase()}
+            {(members.find((m) => m.userId === ctx.userId)?.name ?? 'D')[0].toUpperCase()}
           </span>
           <span>
-            {ctx.local ? 'Din hverdag' : members.find((m) => m.userId === ctx.userId)?.name}
-            <small>{ctx.local ? 'Lokal afprøvning' : 'Min konto'}</small>
+            {members.find((m) => m.userId === ctx.userId)?.name ?? 'Dig'}
+            <small>Min lokale profil</small>
           </span>
           <ChevronRight size={16} />
         </button>
@@ -420,18 +364,8 @@ export function Workspace({
           </div>
           <div className="top-actions">
             <span className="sync-status">
-              {ctx.local || !online ? <CloudOff size={15} /> : <Cloud size={15} />}
-              <span>
-                {ctx.local
-                  ? 'Gemt på denne enhed'
-                  : !online
-                    ? 'Offline'
-                    : syncing
-                      ? 'Synkroniserer …'
-                      : pending
-                        ? `${pending} afventer`
-                        : 'Forbundet'}
-              </span>
+              <CloudOff size={15} />
+              <span>Gemt på denne enhed</span>
             </span>
             <button
               className="button primary compact"
@@ -451,11 +385,6 @@ export function Workspace({
                 Luk
               </button>
             </div>
-          )}
-          {conflicts.length > 0 && (
-            <button className="conflict-banner" onClick={() => go('settings')}>
-              {conflicts.length} ændring(er) kræver dit valg. Åbn konflikter →
-            </button>
           )}
           {active && page !== 'queue' && (
             <div className="active-work">
@@ -481,10 +410,6 @@ export function Workspace({
               locations={locations}
               categories={categories}
               members={members}
-              conflicts={conflicts}
-              pending={pending}
-              online={online}
-              syncing={syncing}
               installAvailable={!!installPrompt}
               installed={installed}
               onInstall={async () => {
@@ -494,8 +419,8 @@ export function Workspace({
                 if (choice.outcome === 'accepted') setInstalled(true);
                 setInstallPrompt(null);
               }}
-              onExit={exit}
-              onSync={sync}
+              onProfileChange={onProfileChange}
+              onMembersChange={onMembersChange}
             />
           ) : page === 'queue' ? (
             <QueueView
@@ -566,7 +491,7 @@ export function Workspace({
           )}
           <footer className="page-footer">
             <span className="jm-brand">
-              <img src="/jm-microapps-logo.png" alt="JM MicroApps" width="1536" height="1024" />
+              <img src={`${import.meta.env.BASE_URL}jm-microapps-logo.png`} alt="JM MicroApps" width="1536" height="1024" />
             </span>
             <span>Lidt ad gangen er også fremad.</span>
           </footer>

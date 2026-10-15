@@ -41,23 +41,30 @@ describe('backup and restore', () => {
     expect((await target.preferences.get('initialized'))?.value).toBe('true');
   });
 
-  it('merges only missing IDs and preserves an existing local edit', async () => {
+  it('merges missing IDs and preserves a newer local edit', async () => {
     await addExamples(source, ctx);
     const backup = await createBackup(source, ctx, []);
     await importBackup(target, ctx, backup, 'merge');
     const task = (await target.tasks.toArray())[0];
-    await target.tasks.update(task.id, { title: 'Bevar denne titel' });
+    await target.tasks.update(task.id, { title: 'Bevar denne titel', updatedAt: new Date(Date.now() + 60_000).toISOString() });
     await importBackup(target, ctx, backup, 'merge');
     expect((await target.tasks.get(task.id))?.title).toBe('Bevar denne titel');
     expect(await target.tasks.count()).toBe(5);
   });
 
-  it('rejects malformed, cross-household and incomplete backup files', async () => {
+  it('accepts another member and migrates a backup from the former online household', async () => {
     expect(() => parseBackup('{nej', ctx)).toThrow('JSON');
     await addExamples(source, ctx);
     const backup = await createBackup(source, ctx, []);
-    expect(() => parseBackup(JSON.stringify({ ...backup, household: { ...backup.household, id: crypto.randomUUID() } }), ctx)).toThrow('anden husstand');
-    expect(() => parseBackup(JSON.stringify({ ...backup, household: { ...backup.household, userId: crypto.randomUUID() } }), ctx)).toThrow('anden bruger');
+    const formerHousehold = crypto.randomUUID();
+    const migrated = structuredClone(backup);
+    migrated.household.id = formerHousehold;
+    for (const rows of [migrated.data.tasks, migrated.data.projects, migrated.data.locations, migrated.data.categories, migrated.data.works, migrated.data.history, migrated.data.queues])
+      for (const row of rows) row.householdId = formerHousehold;
+    expect(() => parseBackup(JSON.stringify(migrated), ctx)).not.toThrow();
+    await importBackup(target, ctx, migrated, 'replace');
+    expect((await target.tasks.toArray()).every((task) => task.householdId === ctx.householdId)).toBe(true);
+    expect(() => parseBackup(JSON.stringify({ ...backup, household: { ...backup.household, userId: crypto.randomUUID() } }), ctx)).not.toThrow();
     const broken = structuredClone(backup);
     broken.data.locations = [];
     expect(() => parseBackup(JSON.stringify(broken), ctx)).toThrow('manglende lokation');

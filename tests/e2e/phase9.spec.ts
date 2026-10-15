@@ -2,7 +2,6 @@ import { expect, test, type Page } from '@playwright/test';
 
 async function openLocalApp(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
   await expect(page.getByRole('heading', { name: 'Gør lidt. Få ro.' })).toBeVisible();
 }
 

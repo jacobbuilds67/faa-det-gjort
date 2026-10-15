@@ -10,7 +10,6 @@ test('queue survives reload, moves, times work, corrects it and leaves next task
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
   for (const name of ['Første opgave', 'Anden opgave', 'Tredje opgave']) {
     await page.getByRole('button', { name: 'Ny opgave', exact: true }).click();
     await page.getByLabel('Opgavens titel').fill(name);
@@ -77,7 +76,6 @@ test('queue survives reload, moves, times work, corrects it and leaves next task
 });
 test('pointer drag supports mouse and touch handles', async ({ page }, testInfo) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
   for (const name of ['Træk mig', 'Hertil']) {
     await page.getByRole('button', { name: 'Ny opgave', exact: true }).click();
     await page.getByLabel('Opgavens titel').fill(name);
@@ -118,7 +116,6 @@ test('direct work remains available after pausing outside the queue, including o
   context,
 }, testInfo) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Prøv på denne enhed' }).click();
   await page.getByRole('button', { name: 'Ny opgave', exact: true }).click();
   await page.getByLabel('Opgavens titel').fill('Ryd op i værkstedet');
   await page.getByRole('button', { name: 'Opret opgave', exact: true }).click();

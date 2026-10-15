@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
+  base: './',
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
@@ -11,7 +12,6 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[ext]',
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-storage': ['dexie', 'dexie-react-hooks'],
           'vendor-icons': ['lucide-react'],
         },

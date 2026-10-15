@@ -1,6 +1,6 @@
 # Få det Gjort – kort vejledning
 
-1. Åbn appen og vælg **Prøv på denne enhed**, hvis login endnu ikke er tilsluttet.
+1. Åbn appen. Den starter direkte med data gemt lokalt i browseren.
 2. Klik **Ny opgave**, eller skriv en sætning i feltet **Skriv opgaven, som du tænker den**. Hurtig oprettelse fortolker eksempelvis “Vask bilen hjemme, 45 minutter, hver uge” og åbner altid formularen til gennemgang.
 3. Klik **Opret opgave**. Opgaven er gemt i browseren og bevares, når du genåbner appen.
 4. På **I dag** vælger du tid og lokation. Her vises op til fem opgaver i prioriteret rækkefølge. Hvert kort forklarer, hvorfor opgaven er relevant; din egen prioritet ændres ikke. Tryk **Se alle** for hele registeret.
@@ -9,15 +9,23 @@
 
 Appen starter uden opgaver. Knappen til eksempelopgaver er frivillig og vises kun i det tomme lokale register.
 
-## Lokal afprøvning og login
+## Lokale data og familiebackup
 
-“Gemt på denne enhed” betyder præcis det: data deles ikke med andre browsere eller enheder. Under **Indstillinger → Backup og gendannelse** kan du hente en JSON-backup. Opbevar den et sikkert sted. Vælg en backupfil for at kontrollere indholdet; tilføj kun manglende data, eller markér den særskilte bekræftelse for at erstatte alle lokale data.
+“Gemt på denne enhed” betyder, at opgaverne ikke sendes til en server. Skriv dit navn under **Indstillinger**, så tidsregistrering og historik kan vise, hvem der arbejdede på opgaven.
 
-Når Supabase er konfigureret, logger du ind med et link sendt til din e-mail. Husstandens ejer kan registrere en invitation; den inviterede logger derefter selv ind med samme e-mail inden syv dage. Der sendes ikke automatisk en invitationsmail.
+Under **Indstillinger → Familiebackup** kan du hente en JSON-fil. Gem den som sikkerhedskopi eller send den til et familiemedlem. På den anden enhed vælges filen og derefter **Flet familiebackup**. Nye poster og nyere rettelser hentes, mens nyere lokale rettelser bevares.
 
-Ændringer fra andre enheder indlæses ved opstart, tilbagevenden til appen og normalt inden for cirka 20 sekunder, mens appen er åben og online. Netværksfejl vises, mens ændringer bevares lokalt.
+Fletningen sker pr. opgave, projekt, kø og historikpost. Hvis Jacob har rettet én opgave, og Birgitte har oprettet en anden, kan begge ændringer derfor bevares. Delingen er manuel: eksportér og send en ny fil, når I vil udveksle de seneste ændringer.
 
-Ved konflikt: Åbn Indstillinger, sammenlign din ændring med serverens, og vælg den ønskede version. Løsning kræver forbindelse. Begge versioner bevares i konfliktarkivet. Udlogning fra en rigtig konto kræver, at ventende ændringer og konflikter er håndteret, og rydder derefter lokale kontodata.
+**Gendan hele backupen** erstatter alle lokale data og kræver særskilt bekræftelse. Brug den kun ved ny enhed eller egentlig gendannelse.
+
+### Flyt fra den tidligere onlineudgave
+
+1. Åbn den nuværende Vercel-udgave, mens den stadig er tilgængelig, og kontrollér at de seneste opgaver vises.
+2. Gå til **Indstillinger → Backup og gendannelse**, og eksportér en backup.
+3. Åbn GitHub Pages-udgaven og vælg backupfilen under **Familiebackup**.
+4. Vælg **Gendan hele backupen** på den første enhed. Appen flytter automatisk data fra det gamle online familie-id til den lokale familie.
+5. Skriv dit navn under Indstillinger, eksportér en ny familiebackup, og brug derefter **Flet familiebackup** på familiens øvrige enheder.
 
 ## Projekter og rækkefølge
 
@@ -27,7 +35,7 @@ Under **Flere detaljer** i en opgave kan du vælge projekt og de opgaver, den sk
 
 ## Installation og offlinebrug
 
-Efter første onlinebesøg kan appen genåbnes uden netværk. På computer og Android bruges browserens installationsknap eller **Indstillinger → Installér Få det Gjort**. På iPhone/iPad vælges **Del → Føj til hjemmeskærm**. Opgaver, kø, timer og afslutninger gemmes lokalt og synkroniseres automatisk, når forbindelsen vender tilbage. En konto skal være logget ind og husstanden hentet mindst én gang, før den kan bruges offline.
+Efter første onlinebesøg kan appen genåbnes uden netværk. På computer og Android bruges browserens installationsknap eller **Indstillinger → Installér Få det Gjort**. På iPhone/iPad vælges **Del → Føj til hjemmeskærm**. Opgaver, kø, timer og afslutninger kræver ikke internet.
 
 ## Påmindelser, statistik og historik
 
@@ -45,7 +53,7 @@ Tryk **Tilføj til kø** på et opgavekort. **Start nu** starter direkte og åbn
 
 **Fjern fra kø** ændrer kun din plan, og stopper ikke en igangværende timer. **Spring over** pauser en eventuel timer og fjerner opgaven fra din kø, men lader engangsopgaven være tilgængelig. For en gentagelse bruges **Spring denne gang over** til at afslutte netop denne forekomst uden at tælle den som udført. Arbejde uden for køen kan stadig fortsættes i køvisningen.
 
-Hvis to enheder har startet eller afsluttet samme opgave offline, gemmes konflikten. Vælg den fælles serverstatus under Indstillinger og ret om nødvendigt tiden bagefter. Den afviste lokale registrering bevares i konfliktarkivet; arbejdsstatus kan ikke overskrives med en gammel lokal kopi.
+Hvis samme opgave ændres på to enheder, vælger familiebackupen den version, der har det nyeste ændringstidspunkt. Eksportér gerne en backup før større rettelser.
 
 ## Gentagelser og sæsoner
 

@@ -6,7 +6,7 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 
 - [x] Opret et separat Supabase-projekt i EU-regionen: **Få det Gjort Pilot**, West EU (Irland).
 - [x] Anvend migrationerne `001_foundation.sql` til `005_security_hardening.sql` i nummerorden.
-- [x] Aktivér e-mail-login og sæt `http://127.0.0.1:5173` som lokal Site URL og redirectadresse.
+- [x] Aktivér e-mail-login. Brug `https://faa-det-gjort.vercel.app` som Site URL, og tillad både produktionsadressen og `http://127.0.0.1:5173` som redirectadresser.
 - [x] Kopiér kun projektets URL og **publishable key** til `.env`. Secret/service-role key bruges ikke i frontend.
 - [x] Verificér 18 applikationstabeller, RLS på alle 18 og Supabase Security Advisor uden fejl.
 - [ ] Konfigurér en egnet mailafsender før almindelig brug.
@@ -30,11 +30,12 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 
 ## 4. Vercel-pilot
 
-- Forbind repositoryet til Vercel. `vercel.json` indeholder buildvalg og sikkerhedsheaders.
-- Opret `VITE_SUPABASE_URL` og `VITE_SUPABASE_PUBLISHABLE_KEY` som projektvariabler i Vercel.
-- Deploy først som preview, tilføj previewadressen i Supabase Auth og gentag de kritiske brugerforløb.
-- Kontrollér HTTPS, manifest, service worker, sikkerhedsheaders og offlineåbning på den offentlige adresse.
+- [x] Forbind det private repository `jacobbuilds67/faa-det-gjort` til Vercel. `vercel.json` indeholder buildvalg og sikkerhedsheaders.
+- [x] Opret `VITE_SUPABASE_URL` og `VITE_SUPABASE_PUBLISHABLE_KEY` som projektvariabler i Vercel.
+- [x] Udgiv piloten på `https://faa-det-gjort.vercel.app`, og tilføj adressen i Supabase Auth.
+- [x] Kontrollér HTTPS, HTTP 200 og CSP-, HSTS-, Permissions-Policy-, Referrer-Policy-, X-Content-Type-Options- og X-Frame-Options-headers på den offentlige adresse.
+- Kontrollér manifest, service worker, offlineåbning og de kritiske brugerforløb på fysiske enheder.
 
 ## 5. Godkendelse til 1.0
 
-Version 1.0.0 sættes først, når to-bruger-piloten, de fysiske enheder, backupgendannelse og previewdeployment er godkendt. Gem resultater og eventuelle kendte begrænsninger i `QUALITY_REPORT.md`.
+Version 1.0.0 sættes først, når to-bruger-piloten, de fysiske enheder, backupgendannelse og produktionsdeployment er godkendt. Gem resultater og eventuelle kendte begrænsninger i `QUALITY_REPORT.md`.

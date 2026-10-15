@@ -68,7 +68,9 @@ Officiel dokumentation: [Supabase passwordless e-mail](https://supabase.com/docs
 
 ## Deployment
 
-Frontend kan hostes uafhængigt på Vercel eller anden statisk hosting:
+Pilotversionen er udgivet på [faa-det-gjort.vercel.app](https://faa-det-gjort.vercel.app/) fra det private GitHub-repository `jacobbuilds67/faa-det-gjort`. Push til `main` udløser nye Vercel-deployments.
+
+Den reproducerbare Vercel-konfiguration er:
 
 - Installationskommando: `pnpm install --frozen-lockfile`
 - Buildkommando: `pnpm build`
@@ -76,7 +78,7 @@ Frontend kan hostes uafhængigt på Vercel eller anden statisk hosting:
 - Indstil de to offentlige Supabase-variabler i buildmiljøet.
 - Brug HTTPS. Ingen hemmelige servernøgler er nødvendige i frontend.
 
-Intet er deployet, og ChatGPT Sites anvendes ikke som hosting. Projektet leveres med lokal Git-versionsstyring. Forbind den valgte hostingkonto og et eventuelt GitHub-repository, når ekstern opsætning er klar; intet er pushet til GitHub.
+Supabase Auth bruger produktionsadressen som Site URL. Både `http://127.0.0.1:5173` og `https://faa-det-gjort.vercel.app/**` er tilladte redirectadresser. ChatGPT Sites anvendes ikke som hosting.
 
 ## Afgrænsning
 

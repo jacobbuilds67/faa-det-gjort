@@ -9,6 +9,12 @@ export default defineConfig({
         entryFileNames: 'assets/app.js',
         chunkFileNames: 'assets/[name].js',
         assetFileNames: 'assets/[name].[ext]',
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-storage': ['dexie', 'dexie-react-hooks'],
+          'vendor-icons': ['lucide-react'],
+        },
       },
     },
   },

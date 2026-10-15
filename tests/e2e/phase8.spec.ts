@@ -7,8 +7,10 @@ async function local(page: any) {
 
 async function navigate(page: any, desktop: string, mobile: string = desktop) {
   const desktopButton = page.getByRole('button', { name: desktop, exact: true });
+  const mobileButton = page.getByRole('button', { name: mobile, exact: true });
+  await expect(desktopButton.or(mobileButton)).toBeVisible();
   if (await desktopButton.isVisible()) await desktopButton.click();
-  else await page.getByRole('button', { name: mobile, exact: true }).click();
+  else await mobileButton.click();
 }
 
 test('quick text creation is interpreted, reviewed and creates reminders', async ({ page }) => {
@@ -18,7 +20,9 @@ test('quick text creation is interpreted, reviewed and creates reminders', async
   await expect(page.getByText('45 minutter', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Gennemse', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('heading', { name: 'Gennemse den fortolkede opgave' })).toBeVisible();
+  await expect(
+    dialog.getByRole('heading', { name: 'Gennemse den fortolkede opgave' }),
+  ).toBeVisible();
   await expect(dialog.getByLabel('Opgavens titel')).toHaveValue('Vask bilen');
   await expect(dialog.getByLabel('Eller vælg antal minutter')).toHaveValue('45');
   await expect(dialog.getByLabel('Hjemme', { exact: true })).toBeChecked();
@@ -28,7 +32,9 @@ test('quick text creation is interpreted, reviewed and creates reminders', async
   await page.getByRole('button', { name: '45 min.', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Vask bilen', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Godt at have på radaren' })).toBeVisible();
-  await expect(page.locator('.reminder-panel')).toContainText('En ny tilbagevendende forekomst er aktuel.');
+  await expect(page.locator('.reminder-panel')).toContainText(
+    'En ny tilbagevendende forekomst er aktuel.',
+  );
 
   await navigate(page, 'Indstillinger', 'Mere');
   await expect(page.getByLabel('Vis relevante påmindelser i appen')).toBeChecked();
@@ -44,7 +50,11 @@ test('statistics and improved history reflect corrected work', async ({ page }, 
   await page.getByRole('button', { name: 'Ny opgave', exact: true }).click();
   await page.getByLabel('Opgavens titel').fill('Fase 8 statistik');
   await page.getByRole('button', { name: 'Opret opgave', exact: true }).click();
-  await page.locator('.task-card').filter({ hasText: 'Fase 8 statistik' }).getByRole('button', { name: 'Start nu' }).click();
+  await page
+    .locator('.task-card')
+    .filter({ hasText: 'Fase 8 statistik' })
+    .getByRole('button', { name: 'Start nu' })
+    .click();
   const row = page.locator('.work-row').filter({ hasText: 'Fase 8 statistik' });
   await row.getByRole('button', { name: 'Pause', exact: true }).click();
   await row.getByRole('button', { name: 'Ret tid', exact: true }).click();
@@ -54,8 +64,12 @@ test('statistics and improved history reflect corrected work', async ({ page }, 
 
   await navigate(page, 'Statistik');
   await expect(page.getByRole('heading', { name: 'Statistik og historik' })).toBeVisible();
-  await expect(page.locator('.metric-grid article').filter({ hasText: 'Afsluttede' })).toContainText('1');
-  await expect(page.locator('.metric-grid article').filter({ hasText: 'Registreret tid' })).toContainText('35 min.');
+  await expect(
+    page.locator('.metric-grid article').filter({ hasText: 'Afsluttede' }),
+  ).toContainText('1');
+  await expect(
+    page.locator('.metric-grid article').filter({ hasText: 'Registreret tid' }),
+  ).toContainText('35 min.');
   await page.getByRole('tab', { name: 'Historik' }).click();
   const history = page.locator('.history-list article').filter({ hasText: 'Fase 8 statistik' });
   await expect(history).toContainText('Faktisk 35 min.');
@@ -63,6 +77,11 @@ test('statistics and improved history reflect corrected work', async ({ page }, 
   await page.getByRole('dialog').getByLabel('Minutter').fill('28');
   await page.getByRole('button', { name: 'Gem tid' }).click();
   await expect(history).toContainText('Faktisk 28 min.');
-  await page.screenshot({ path: `../outputs/hverdagsro/phase8-${testInfo.project.name}.png`, fullPage: true });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({
+    path: `../outputs/hverdagsro/phase8-${testInfo.project.name}.png`,
+    fullPage: true,
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
 });

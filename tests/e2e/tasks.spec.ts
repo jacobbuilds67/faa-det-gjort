@@ -83,8 +83,10 @@ test('has no horizontal overflow', async ({ page }) => {
 
 test('creates and renames locations and categories', async ({ page }) => {
   const desktopSettings = page.getByRole('button', { name: 'Indstillinger', exact: true });
+  const mobileSettings = page.getByRole('button', { name: 'Mere', exact: true });
+  await expect(desktopSettings.or(mobileSettings)).toBeVisible();
   if (await desktopSettings.isVisible()) await desktopSettings.click();
-  else await page.getByRole('button', { name: 'Mere', exact: true }).click();
+  else await mobileSettings.click();
   await page.getByRole('textbox', { name: 'Ny lokation', exact: true }).fill('Værksted');
   await page.getByRole('textbox', { name: 'Ny lokation', exact: true }).press('Enter');
   await page.getByRole('button', { name: 'Rediger Værksted', exact: true }).click();

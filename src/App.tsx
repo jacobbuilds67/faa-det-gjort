@@ -1,11 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Leaf } from 'lucide-react';
 import { AppDB, localContext } from './data/db';
 import { supabase } from './data/supabase';
 import type { Context, Member } from './domain/model';
 import { Auth, HouseholdSetup } from './components/Auth';
-import { Workspace } from './features/Workspace';
+
+const Workspace = lazy(() =>
+  import('./features/Workspace').then(({ Workspace }) => ({ default: Workspace })),
+);
+
+function WorkspaceFallback() {
+  return (
+    <main className="loading">
+      <Leaf size={32} />
+      <p>Gør arbejdsområdet klar …</p>
+    </main>
+  );
+}
 
 function readCachedHousehold(
   key: string,
@@ -100,14 +112,16 @@ export default function App() {
   }, [local, loadHousehold]);
   if (local)
     return (
-      <Workspace
-        ctx={localContext}
-        members={[{ userId: localContext.userId, name: 'Dig', role: 'owner' }]}
-        onExit={async () => {
-          localStorage.removeItem('hverdagsro-mode');
-          setLocal(false);
-        }}
-      />
+      <Suspense fallback={<WorkspaceFallback />}>
+        <Workspace
+          ctx={localContext}
+          members={[{ userId: localContext.userId, name: 'Dig', role: 'owner' }]}
+          onExit={async () => {
+            localStorage.removeItem('hverdagsro-mode');
+            setLocal(false);
+          }}
+        />
+      </Suspense>
     );
   if (loading)
     return (
@@ -146,21 +160,23 @@ export default function App() {
     );
   if (!ctx) return <HouseholdSetup onReady={() => void loadHousehold()} />;
   return (
-    <Workspace
-      key={ctx.userId + ctx.householdId}
-      ctx={ctx}
-      members={members}
-      onExit={async () => {
-        const db = new AppDB(`${ctx.userId}-${ctx.householdId}`);
-        if ((await db.outbox.count()) || (await db.conflicts.count())) {
-          db.close();
-          throw new Error('Synkroniser og løs konflikter før udlogning.');
-        }
-        await db.delete();
-        localStorage.removeItem(`hverdagsro-household:${ctx.userId}`);
-        const { error } = await supabase!.auth.signOut();
-        if (error) throw error;
-      }}
-    />
+    <Suspense fallback={<WorkspaceFallback />}>
+      <Workspace
+        key={ctx.userId + ctx.householdId}
+        ctx={ctx}
+        members={members}
+        onExit={async () => {
+          const db = new AppDB(`${ctx.userId}-${ctx.householdId}`);
+          if ((await db.outbox.count()) || (await db.conflicts.count())) {
+            db.close();
+            throw new Error('Synkroniser og løs konflikter før udlogning.');
+          }
+          await db.delete();
+          localStorage.removeItem(`hverdagsro-household:${ctx.userId}`);
+          const { error } = await supabase!.auth.signOut();
+          if (error) throw error;
+        }}
+      />
+    </Suspense>
   );
 }

@@ -1,9 +1,14 @@
-const CACHE = 'faa-det-gjort-v9';
+const CACHE = 'faa-det-gjort-v10';
 const CORE = [
   '/',
   '/index.html',
   '/assets/app.js',
   '/assets/index.css',
+  '/assets/Workspace.js',
+  '/assets/vendor-icons.js',
+  '/assets/vendor-react.js',
+  '/assets/vendor-storage.js',
+  '/assets/vendor-supabase.js',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/pwa-icon.svg',

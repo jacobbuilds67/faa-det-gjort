@@ -34,7 +34,8 @@ Fase 2–9 er teknisk afsluttet. Denne checkliste fører version 0.9.1 gennem en
 - [x] Opret `VITE_SUPABASE_URL` og `VITE_SUPABASE_PUBLISHABLE_KEY` som projektvariabler i Vercel.
 - [x] Udgiv piloten på `https://faa-det-gjort.vercel.app`, og tilføj adressen i Supabase Auth.
 - [x] Kontrollér HTTPS, HTTP 200 og CSP-, HSTS-, Permissions-Policy-, Referrer-Policy-, X-Content-Type-Options- og X-Frame-Options-headers på den offentlige adresse.
-- Kontrollér manifest, service worker, offlineåbning og de kritiske brugerforløb på fysiske enheder.
+- [x] Kontrollér manifest, service worker og kold offlineåbning i automatiske desktop- og mobilprofiler.
+- Gentag offlineåbning og de kritiske brugerforløb på de fysiske pilotenheder.
 
 ## 5. Godkendelse til 1.0
 

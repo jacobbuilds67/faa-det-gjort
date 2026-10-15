@@ -19,6 +19,12 @@ Fletningen sker pr. opgave, projekt, kø og historikpost. Hvis Jacob har rettet 
 
 **Gendan hele backupen** erstatter alle lokale data og kræver særskilt bekræftelse. Brug den kun ved ny enhed eller egentlig gendannelse.
 
+**Del familiebackup** åbner enhedens delingsmenu med backupfilen klar. På iPhone, iPad og Mac vælges **Beskeder** og derefter modtageren. Hvis delingsmenuen ikke er tilgængelig, hentes filen, så den kan vedhæftes manuelt.
+
+## Totalbackup
+
+Totalbackuppen gemmer alt fra familiebackuppen sammen med denne enheds profil, identitet og medlemsliste. Brug **Eksportér totalbackup** som fuld sikkerhedskopi. Ved **Gendan totalbackup** erstattes hele den lokale app og siden genindlæses med den gendannede profil.
+
 ### Flyt fra den tidligere onlineudgave
 
 1. Åbn den nuværende Vercel-udgave, mens den stadig er tilgængelig, og kontrollér at de seneste opgaver vises.

@@ -4,6 +4,7 @@ import type { Context, Member, Task, Project, NamedEntity, Command, Conflict } f
 import { taskSchema } from '../domain/model';
 import type { WorkState, QueueState, WorkEvent } from '../domain/work';
 import { AppDB } from './db';
+import type { LocalProfile } from './localProfile';
 
 const uuid = z.string().uuid();
 const iso = z.string().datetime({ offset: true });
@@ -25,6 +26,11 @@ const backupSchema = z.object({
   household: z.object({ id: uuid, name: z.string().min(1), userId: uuid, local: z.boolean(), members: z.array(memberSchema) }),
   data: z.object({ tasks: z.array(taskSchema).max(100000), projects: z.array(projectSchema).max(100000), locations: z.array(namedSchema).max(100000), categories: z.array(namedSchema).max(100000), works: z.array(workSchema).max(100000), history: z.array(workSchema).max(100000), queues: z.array(queueSchema).max(100000), workEvents: z.array(eventSchema).max(500000), outbox: z.array(commandSchema).max(100000), conflicts: z.array(conflictSchema).max(100000), preferences: z.array(z.object({ key: z.string().min(1).max(500), value: z.string().max(5000000) })).max(100000) }),
 });
+const totalBackupSchema = z.object({
+  format: z.literal('faa-det-gjort-totalbackup'), version: z.literal(1), exportedAt: iso,
+  device: z.object({ profile: z.object({ userId: uuid, name: z.string().min(1).max(80) }), members: z.array(memberSchema) }),
+  family: backupSchema,
+});
 
 export type Backup = {
   format: 'faa-det-gjort-backup'; version: 1; exportedAt: string;
@@ -33,6 +39,11 @@ export type Backup = {
 };
 export type ImportMode = 'merge' | 'replace';
 export type ImportReport = { added: number; updated: number; kept: number; members: Member[] };
+export type TotalBackup = {
+  format: 'faa-det-gjort-totalbackup'; version: 1; exportedAt: string;
+  device: { profile: LocalProfile; members: Member[] };
+  family: Backup;
+};
 
 export async function createBackup(db: AppDB, ctx: Context, members: Member[]): Promise<Backup> {
   const [tasks, projects, locations, categories, works, history, queues, workEvents, preferences] = await Promise.all([
@@ -47,6 +58,28 @@ export async function createBackup(db: AppDB, ctx: Context, members: Member[]): 
 
 export const serializeBackup = (backup: Backup) => JSON.stringify(backup, null, 2);
 export const backupFilename = (date = new Date()) => `faa-det-gjort-familiebackup-${date.toISOString().slice(0, 10)}.json`;
+export const totalBackupFilename = (date = new Date()) => `faa-det-gjort-totalbackup-${date.toISOString().slice(0, 10)}.json`;
+
+export async function createTotalBackup(db: AppDB, ctx: Context, members: Member[]): Promise<TotalBackup> {
+  const family = await createBackup(db, ctx, members);
+  return totalBackupSchema.parse({
+    format: 'faa-det-gjort-totalbackup', version: 1, exportedAt: family.exportedAt,
+    device: { profile: { userId: ctx.userId, name: members.find((member) => member.userId === ctx.userId)?.name ?? 'Dig' }, members },
+    family,
+  }) as TotalBackup;
+}
+
+export function parseTotalBackup(text: string): TotalBackup {
+  if (text.length > 20_000_000) throw new Error('Backupfilen er større end 20 MB.');
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { throw new Error('Filen indeholder ikke gyldig JSON.'); }
+  const result = totalBackupSchema.safeParse(raw);
+  if (!result.success) throw new Error('Filen er ikke en gyldig totalbackup.');
+  const backup = result.data as TotalBackup;
+  validateRelations(backup.family);
+  if (backup.family.household.userId !== backup.device.profile.userId) throw new Error('Totalbackuppen har en ugyldig enhedsprofil.');
+  return backup;
+}
 
 export function parseBackup(text: string, _ctx: Context): Backup {
   if (text.length > 20_000_000) throw new Error('Backupfilen er større end 20 MB.');

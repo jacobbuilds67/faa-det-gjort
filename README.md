@@ -21,6 +21,12 @@ En backup fra den tidligere Supabase-udgave kan importeres direkte. Importen fly
 
 Delingen er manuel. Der er ingen automatisk realtidssynkronisering, og ingen personlige data sendes til GitHub.
 
+**Del familiebackup** opretter filen og åbner enhedens delingsmenu. På Apple-enheder kan **Beskeder** vælges for at sende filen med iMessage. Hvis browseren ikke understøtter fildeling, hentes filen i stedet.
+
+## Totalbackup
+
+Under **Indstillinger → Totalbackup** kan der hentes en komplet kopi af den aktuelle enhed. Den indeholder familiebackuppen samt lokal profil, enhedsidentitet og medlemslisten. Ved gendannelse erstattes både lokale data og enhedsprofil efter en tydelig bekræftelse.
+
 ## Funktioner
 
 - Opgaver, prioritet, estimat, lokationer, kategorier, datoer og ansvarlig.

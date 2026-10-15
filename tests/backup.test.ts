@@ -4,7 +4,7 @@ import { AppDB, initialize, localContext as ctx } from '../src/data/db';
 import { addExamples, saveTask } from '../src/data/repository';
 import { saveProject } from '../src/data/projectRepository';
 import { actOnWork, changeQueue } from '../src/data/workRepository';
-import { createBackup, importBackup, parseBackup, serializeBackup } from '../src/data/backup';
+import { createBackup, createTotalBackup, importBackup, parseBackup, parseTotalBackup, serializeBackup } from '../src/data/backup';
 
 let source: AppDB;
 let target: AppDB;
@@ -68,5 +68,17 @@ describe('backup and restore', () => {
     const broken = structuredClone(backup);
     broken.data.locations = [];
     expect(() => parseBackup(JSON.stringify(broken), ctx)).toThrow('manglende lokation');
+  });
+
+  it('creates a total backup with the local profile and validates its identity', async () => {
+    await addExamples(source, ctx);
+    const members = [{ userId: ctx.userId, name: 'Jacob', role: 'owner' as const }];
+    const backup = await createTotalBackup(source, ctx, members);
+    const parsed = parseTotalBackup(JSON.stringify(backup));
+    expect(parsed.device.profile).toEqual({ userId: ctx.userId, name: 'Jacob' });
+    expect(parsed.family.data.tasks).toHaveLength(5);
+    const broken = structuredClone(backup);
+    broken.device.profile.userId = crypto.randomUUID();
+    expect(() => parseTotalBackup(JSON.stringify(broken))).toThrow('enhedsprofil');
   });
 });

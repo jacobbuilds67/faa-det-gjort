@@ -1,4 +1,4 @@
-const CACHE = 'faa-det-gjort-v11';
+const CACHE = 'faa-det-gjort-v12';
 const BASE = new URL('./', self.registration.scope).pathname;
 const asset = (path) => `${BASE}${path}`;
 const CORE = [

@@ -5,7 +5,7 @@ for (const filename of [
   'dist/index.html',
   'dist/service-worker.js',
   'dist/manifest.webmanifest',
-  'dist/assets/app.js',
+  'dist/assets/app-v12.js',
   '.github/workflows/pages.yml',
 ]) {
   if (!existsSync(filename)) errors.push('Releasefil mangler: ' + filename);

@@ -7,9 +7,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/app.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        entryFileNames: 'assets/app-v12.js',
+        chunkFileNames: 'assets/[name]-v12.js',
+        assetFileNames: 'assets/[name]-v12.[ext]',
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-storage': ['dexie', 'dexie-react-hooks'],

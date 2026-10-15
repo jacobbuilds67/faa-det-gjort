@@ -21,8 +21,8 @@ test('installs its offline shell and reopens saved tasks without network', async
       await new Promise<void>((resolve) => navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }));
     return {
       controlled: !!navigator.serviceWorker.controller,
-      script: !!(await caches.match('/assets/app.js')),
-      styles: !!(await caches.match('/assets/index.css')),
+      script: !!(await caches.match('/assets/app-v12.js')),
+      styles: !!(await caches.match('/assets/index-v12.css')),
     };
   });
   expect(offlineReady).toEqual({ controlled: true, script: true, styles: true });
